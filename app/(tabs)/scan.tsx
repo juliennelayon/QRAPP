@@ -1,9 +1,9 @@
+import { STUDENT_ID } from '@/constants/student';
+import { registerAttendance } from '@/lib/database';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { STUDENT_ID } from '@/constants/student';
-import { registerAttendance } from '@/lib/database';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
@@ -38,14 +38,13 @@ export default function ScanScreen() {
   }
 
   const handleBarcodeScanned = ({ data }: { data: string }) => {
-  setScanned(true);
-  setLastData(data);
-  registerAttendance(data, STUDENT_ID).then((result) => {
-    setMessage(result.message);
-    setSuccess(result.success);
-  });
-};
-
+    setScanned(true);
+    setLastData(data);
+    registerAttendance(data, STUDENT_ID).then((result) => {
+      setMessage(result.message);
+      setSuccess(result.success);
+    });
+  };
   const handleScanAgain = () => {
   setScanned(false);
   setLastData(null);
@@ -68,16 +67,17 @@ export default function ScanScreen() {
         </Text>
 
         {scanned && message && (
-          <Text
+  <Text
     style={[styles.scanResult, success ? styles.success : styles.error]}
   >
     {message}
   </Text>
 )}
-       
+
         {scanned && lastData && (
   <Text style={styles.scanData}>{lastData}</Text>
 )}
+
 
         {scanned && (
           <AppButton
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   camera: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   title: {
     fontSize: 20,
@@ -133,8 +133,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textAlign: 'center',
   },
-  scanResult: { fontSize: 14, textAlign: 'center', marginBottom: 8, fontWeight: '600' },
-  success:    { color: '#2E7D32' },   // green — attendance recorded
-  error:      { color: '#C62828' },   // red — failed / duplicate
-  scanData:   { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 12 },
+  scanResult: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  success: {
+    color: '#2E7D32', // green — attendance recorded
+  },
+  error: {
+    color: '#C62828', // red — failed / duplicate
+  },
+  scanData: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
 });
