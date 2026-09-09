@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   camera: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   title: {
     fontSize: 20,
