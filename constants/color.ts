@@ -1,12 +1,12 @@
 export const Colors = {
   light: {
-    text: "#000",
-    background: "#fff",
-    tint: "#1E67D1",
+    text: "#0D1B2A",
+    background: "#F4F7FB",
+    tint: "#00838F",
   },
   dark: {
-    text: "#fff",
-    background: "#000",
-    tint: "#fff",
+    text: "#FFFFFF",
+    background: "#12181F",
+    tint: "#00E5FF",
   },
 };
