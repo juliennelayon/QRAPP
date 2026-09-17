@@ -1,5 +1,5 @@
-import { STUDENT_ID } from '@/constants/student';
-import { registerAttendance } from '@/lib/database';
+import { useAuth } from '@/lib/auth';
+import { registerAttendance } from '@/lib/attendance';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -14,6 +14,8 @@ export default function ScanScreen() {
   const [lastData, setLastData] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { user } = useAuth();
+  
 
 
   if (!permission) {
@@ -40,7 +42,8 @@ export default function ScanScreen() {
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     setScanned(true);
     setLastData(data);
-    registerAttendance(data, STUDENT_ID).then((result) => {
+    const studentId = user?.id ?? 'unknown';
+    registerAttendance(data, studentId).then((result) => {
       setMessage(result.message);
       setSuccess(result.success);
     });
@@ -122,7 +125,9 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 60,
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
     alignItems: 'center',
   },
@@ -140,10 +145,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   success: {
-    color: '#2E7D32', // green — attendance recorded
+    color: COLORS.success,
   },
   error: {
-    color: '#C62828', // red — failed / duplicate
+    color: COLORS.danger,
   },
   scanData: {
     fontSize: 12,

@@ -1,13 +1,12 @@
 {
   "expo": {
-    "name": "QR-ATT",
-    "slug": "QR-ATT",
+    "name": "QR-APP",
+    "slug": "QR-APP",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "qr-attendance",
     "userInterfaceStyle": "light",
-    
     "ios": {
       "supportsTablet": true
     },
@@ -18,8 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.julyen.QRAPP"
     },
     "web": {
       "output": "static",
@@ -37,10 +36,19 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store",
+      "expo-build-properties"
     ],
     "experiments": {
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "98e6ffe9-d589-4768-bd38-e336149fba35"
+      }
+    },
+    "owner": "julyen"
   }
 }

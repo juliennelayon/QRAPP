@@ -2,8 +2,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -16,7 +18,10 @@ import QRCode from 'react-native-qrcode-svg';
 
 import AppButton from '@/components/AppButton';
 import { COLORS } from '@/constants/colors';
-import { createEvent } from '@/lib/database';
+import { useAuth } from '@/lib/auth';
+import { createEvent } from '@/lib/events';
+import { getProfile, type Role } from '@/lib/profiles';
+import { buildQRPayload } from '@/lib/qr';
 
 function toLocalISO(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -34,6 +39,14 @@ function formatDateTime(date: Date) {
   )}:${pad(date.getMinutes())}`;
 }
 
+function toInputDateTimeValue(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
 const QUICK_END_OPTIONS = [
   { label: '+30 min', ms: 30 * 60 * 1000 },
   { label: '+1 hour', ms: 60 * 60 * 1000 },
@@ -43,6 +56,9 @@ const QUICK_END_OPTIONS = [
 type EditTarget = 'start' | 'end';
 
 export default function TeacherScreen() {
+  const { user } = useAuth();
+  const [role, setRole] = useState<Role | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [eventId, setEventId] = useState('');
   const [startDate, setStartDate] = useState(() => new Date());
@@ -56,10 +72,73 @@ export default function TeacherScreen() {
 
   const isAndroid = Platform.OS === 'android';
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (!user) {
+        setRoleLoading(false);
+        return () => {
+          active = false;
+        };
+      }
+      getProfile(user.id).then((profile) => {
+        if (!active) return;
+        setRole(profile?.role ?? 'student');
+        setRoleLoading(false);
+      });
+      return () => {
+        active = false;
+      };
+    }, [user])
+  );
+
+  if (roleLoading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.checkingText}>Checking your account...</Text>
+      </View>
+    );
+  }
+
+  if (role !== 'teacher') {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="lock-closed-outline" size={40} color={COLORS.textSecondary} />
+        <Text style={styles.lockTitle}>Teachers Only</Text>
+        <Text style={styles.lockSubtitle}>
+          Only teacher accounts can create events.
+        </Text>
+      </View>
+    );
+  }
+
   const openPicker = (target: EditTarget) => {
     setMessage(null);
     setEditTarget(target);
     setEditingPart('date');
+  };
+
+  const renderDateTimeField = (target: EditTarget) => {
+    const value = target === 'start' ? startDate : endDate;
+    const icon = target === 'start' ? 'sunny-outline' : 'moon-outline';
+    const handleChange = (next: Date) => {
+      setMessage(null);
+      if (target === 'start') setStartDate(next);
+      else setEndDate(next);
+    };
+
+    if (Platform.OS === 'web') {
+      return <WebDateTimeField value={value} icon={icon} onChange={handleChange} />;
+    }
+
+    return (
+      <PickerField
+        value={formatDateTime(value)}
+        icon={icon}
+        onPress={() => openPicker(target)}
+      />
+    );
   };
 
   const onPickerChange = (
@@ -112,17 +191,13 @@ export default function TeacherScreen() {
       return;
     }
 
-    createEvent(event).then(() => {
+    createEvent(event).then(({ error }) => {
+      if (error) {
+        setMessage('Could not save the event. Please try again.');
+        return;
+      }
       setMessage('Event saved! Scan the QR with the Scan tab to test it.');
-      setPayload(
-        JSON.stringify({
-          v: 1,
-          event: event.eventId,
-          title: event.title,
-          start: event.start,
-          end: event.end,
-        })
-      );
+      setPayload(buildQRPayload(event));
     });
   };
 
@@ -157,18 +232,10 @@ export default function TeacherScreen() {
       />
 
       <Text style={styles.label}>Starts</Text>
-      <PickerField
-        value={formatDateTime(startDate)}
-        icon="sunny-outline"
-        onPress={() => openPicker('start')}
-      />
+      {renderDateTimeField('start')}
 
       <Text style={styles.label}>Ends</Text>
-      <PickerField
-        value={formatDateTime(endDate)}
-        icon="moon-outline"
-        onPress={() => openPicker('end')}
-      />
+      {renderDateTimeField('end')}
       <View style={styles.chipRow}>
         {QUICK_END_OPTIONS.map((option) => (
           <Pressable
@@ -191,7 +258,7 @@ export default function TeacherScreen() {
         onPress={handleCreateEvent}
       />
 
-      {editTarget && (
+      {editTarget && Platform.OS !== 'web' && (
         <View style={styles.pickerContainer}>
           <DateTimePicker
             value={editTarget === 'start' ? startDate : endDate}
@@ -236,10 +303,79 @@ function PickerField({ value, icon, onPress }: PickerFieldProps) {
   );
 }
 
+type WebDateTimeFieldProps = {
+  value: Date;
+  icon: keyof typeof Ionicons.glyphMap;
+  onChange: (date: Date) => void;
+};
+
+function WebDateTimeField({ value, icon, onChange }: WebDateTimeFieldProps) {
+  return (
+    <View style={styles.pickerField}>
+      <Ionicons name={icon} size={20} color={COLORS.primary} />
+      <input
+        type="datetime-local"
+        value={toInputDateTimeValue(value)}
+        onChange={(event) => {
+          const next = new Date(event.target.value);
+          if (!Number.isNaN(next.getTime())) onChange(next);
+        }}
+        onClick={(event) => {
+          try {
+            event.currentTarget.showPicker();
+          } catch {
+            // Fall back to the browser's native datetime-local input behavior.
+          }
+        }}
+        style={webInputStyle}
+      />
+    </View>
+  );
+}
+
+const webInputStyle = {
+  flex: 1,
+  marginLeft: 10,
+  marginRight: 10,
+  fontSize: 15,
+  fontWeight: 500,
+  color: COLORS.textPrimary,
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  fontFamily: 'inherit',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  centerContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  checkingText: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginTop: 12,
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 12,
+  },
+  lockSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 4,
   },
   content: {
     paddingHorizontal: 24,
@@ -267,17 +403,17 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textPrimary,
   },
   pickerField: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 14,
@@ -328,15 +464,12 @@ const styles = StyleSheet.create({
   },
   resultCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
     marginTop: 20,
     alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   resultTitle: {
     fontSize: 15,
@@ -346,7 +479,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   qrBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     padding: 12,
     borderRadius: 10,
     marginBottom: 12,
