@@ -20,7 +20,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'home-sharp' : 'home-outline'}
+              name={focused ? 'home' : 'home-outline'}
               color={color}
               size={24}
             />
@@ -33,7 +33,7 @@ export default function TabLayout() {
           title: 'Scan',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'qr-code' : 'qr-code-outline'}
+              name={focused ? 'scan-circle' : 'scan-circle-outline'}
               color={color}
               size={24}
             />
@@ -46,7 +46,7 @@ export default function TabLayout() {
           title: 'History',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'time' : 'time-outline'}
+              name={focused ? 'albums' : 'albums-outline'}
               color={color}
               size={24}
             />
@@ -72,7 +72,7 @@ export default function TabLayout() {
           title: 'Teacher',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'clipboard' : 'clipboard-outline'}
+              name={focused ? 'school' : 'school-outline'}
               color={color}
               size={24}
             />
