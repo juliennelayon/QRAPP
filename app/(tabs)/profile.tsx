@@ -83,7 +83,7 @@ export default function ProfileScreen() {
               </View>
             ) : (
               <View style={[styles.roleBadge, styles.roleBadgeStudent]}>
-                <Text style={styles.roleBadgeText}>Student</Text>
+                <Text style={[styles.roleBadgeText, styles.roleBadgeTextStudent]}>Student</Text>
               </View>
             )}
           </View>
@@ -175,14 +175,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   roleBadgeStudent: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary,
   },
   roleBadgeText: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.textOnPrimary,
+  },
+  roleBadgeTextStudent: {
+    color: COLORS.textPrimary,
   },
   label: {
     fontSize: 12,
